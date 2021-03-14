@@ -222,9 +222,10 @@ class CashFlow(object):
     def get_values_df(self, end_date, paths=1, rand=None, verbosity=0):
         argdict = locals().copy()
         if verbosity > 0:
-            print("{0} <{1}>".format(Utilities.whoami(), Utilities.now()))
-            for k in argdict.keys():
-                print("{0}: {1}".format(k, argdict[k]))
+            print("{0} {1} <{2}>".format(Utilities.whoami(), self.name, Utilities.now()))
+            if verbosity > 1:
+                for k in argdict.keys():
+                    print("{0}: {1}".format(k, argdict[k]))
         vtups = []
         if paths > 1 and rand is False:
             warnings.warn("paths= {0}, setting rand to True".format(paths))
@@ -234,6 +235,8 @@ class CashFlow(object):
             if paths > 1:
                 rand = True
         for pi in range(paths):
+            if verbosity > 1:
+                print("path: {0}".format(pi))
             date = self.start_date
             growth_value = self.start_value
             monthly_value = self.monthly_value
@@ -282,13 +285,16 @@ class NetValue(object):
         argdict = locals().copy()
         if verbosity > 0:
             print("{0} <{1}>".format(Utilities.whoami(), Utilities.now()))
-            for k in argdict.keys():
-                print("{0}: {1}".format(k, argdict[k]))
+            if verbosity > 1:
+                for k in argdict.keys():
+                    print("{0}: {1}".format(k, argdict[k]))
         vdf = None
         for name in self.cash_flows.keys():
+            if verbosity > 1:
+                print("cf: {0}".format(name))
             cf = self.cash_flows[name]
             try:
-                df = cf.get_values_df(end_date, paths=paths, rand=rand)
+                df = cf.get_values_df(end_date, paths=paths, rand=rand, verbosity=verbosity)
             except Exception as e:
                 msg = Utilities.last_exception_info()
                 extype, exval, tb = Utilities.last_exception_parts()
@@ -296,10 +302,12 @@ class NetValue(object):
             if vdf is None:
                 vdf = df
             else:
-                res = vdf.merge(df, on="date", how="outer")
+                res = vdf.merge(df, on=["date", "path"], how="outer")
                 vdf = res
         vdf.set_index("date")
         vdf["total"] = vdf.sum(axis=1)
+        if verbosity > 0:
+            print("Done {0} {1}".format(Utilities.whoami(), Utilities.now()))
         return vdf
 
 
